@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日一笑產生器</title>
+    
+    <!-- 引入 Google Fonts 以獲得更好的中文字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- ========== CSS 樣式開始 ========== -->
+    <style>
+        /* --- 全域與基本設定 --- */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            /* 使用 Noto Sans TC 作為主要字體 */
+            font-family: 'Noto Sans TC', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* 預設的柔和背景色 */
+            background-color: #f0f8ff; 
+            /* 背景色變換時有 0.7 秒的平滑過渡動畫 */
+            transition: background-color 0.7s ease; 
+            text-rendering: optimizeLegibility;
+        }
+
+        /* --- 主要容器 --- */
+        .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        /* --- 標題 --- */
+        h1 {
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+
+        /* --- 語錄顯示區 --- */
+        .quote-box {
+            /* 設定最小高度防止更換短語錄時，整個版面跳動 */
+            min-height: 120px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        #quote-text {
+            font-size: 1.5em; /* 24px */
+            line-height: 1.6;
+            color: #444;
+            margin: 0;
+            opacity: 1; /* 初始不透明度為 1 (完全顯示) */
+            /* 文字透明度變化時有 0.5 秒的淡入淡出動畫 */
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* 這個 class 是給 JavaScript 控制的，用來觸發淡出效果 */
+        #quote-text.fade {
+            opacity: 0; /* 透明度為 0 (完全透明) */
+        }
+
+        /* --- 按鈕區 --- */
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px; /* 按鈕之間的間距 */
+            flex-wrap: wrap; /* 在小螢幕時，如果空間不夠，按鈕會自動換行 */
+        }
+
+        button {
+            padding: 12px 25px;
+            font-size: 1em; /* 16px */
+            font-family: 'Noto Sans TC', sans-serif;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        #generate-btn {
+            background-color: #007BFF; /* 藍色 */
+        }
+
+        #generate-btn:hover {
+            background-color: #0056b3; /* 滑鼠懸停時變深藍色 */
+            transform: translateY(-2px); /* 懸停時按鈕輕微向上移動，增加立體感 */
+        }
+
+        #copy-btn {
+            background-color: #28a745; /* 綠色 */
+        }
+
+        #copy-btn:hover {
+            background-color: #1e7e34; /* 滑鼠懸停時變深綠色 */
+            transform: translateY(-2px);
+        }
+
+        /* 複製成功後按鈕的樣式 */
+        #copy-btn.copied {
+            background-color: #17a2b8; /* 青色 */
+            cursor: default;
+        }
+
+        button:active {
+            transform: translateY(0); /* 點擊按鈕時，讓它回到原位，產生按下去的感覺 */
+        }
+
+        /* --- 頁腳 --- */
+        footer {
+            position: fixed; /* 固定在視窗底部 */
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            padding: 15px 0;
+            font-size: 0.9em;
+            color: rgba(0, 0, 0, 0.6);
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+    <!-- ========== CSS 樣式結束 ========== -->
+</head>
+<body>
+
+    <!-- ========== HTML 結構開始 ========== -->
+    <div class="container">
+        <h1>每日一笑產生器</h1>
+
+        <div class="quote-box">
+            <p id="quote-text">正在為您準備今日份的幽默...</p>
+        </div>
+
+        <div class="buttons">
+            <button id="generate-btn">換一句！</button>
+            <button id="copy-btn">複製文字</button>
+        </div>
+    </div>
+
+    <footer>Patricia Liu 生成式AI教材</footer>
+    <!-- ========== HTML 結構結束 ========== -->
+
+
+    <!-- ========== JavaScript 邏輯開始 ========== -->
+    <!-- 將 JS 放在 body 結尾，是為了確保瀏覽器已經將上面的 HTML 元素都載入完成，JS 才能抓到它們 -->
+    <script>
+        // 核心資料：語錄清單
+        const quotes = [
+            "今天不開心沒關係，明天再來試試看。", "天塌下來，記得先吃飽再說。", "有夢就去追，別讓床綁住你。",
+            "遇到困難，先喝杯奶茶冷靜一下。", "每天都很難，但你很棒，還在努力。", "世界很亂，但你可以很暖。",
+            "沒關係，我們都在學怎麼活著。", "別怕慢，只怕你不肯走。", "太陽每天都升起，你也是。", "心情不好？那就換個心情穿。",
+            "我不是愛遲到，我是時間管理出bug了。", "我本來想減肥的，但食物先開口了。", "我的存款跟我一樣，很低調。",
+            "熬夜沒罪，早起才是折磨。", "我的夢想很大，目前還在睡覺。", "我不是懶，是被沙發綁架了。",
+            "鬧鐘叫了我十次，我選擇了原諒它。", "做人如果不快樂，那就去吃點快樂肥。", "上班像極了被迫登入人生。",
+            "錢不能買幸福，但可以買炸雞。", "有些人看起來很冷，其實只是沒睡飽。", "人生就像Wi-Fi，越靠近目標越強。",
+            "別低估自己，你起碼還會滑手機。", "生活不如意？那就調成飛航模式。", "人生短短幾十年，開心一點很划算。",
+            "懂事的年紀最辛苦，但也最酷。", "你的平凡，是別人的夢想。", "假裝快樂久了，也會慢慢變快樂。",
+            "對世界溫柔一點，也對自己寬容一點。", "所有的慢，都是在醞釀不凡。", "你已經比昨天更好了。", "你不是一個人。",
+            "做你自己，很可以。", "呼吸一下，一切會好。", "喝水、睡覺、繼續加油。", "給自己一個抱抱。", "不要急，宇宙在排隊。",
+            "辛苦了，真的。", "有光的地方，就有你。", "別怕，你很行！", "貓不會煩惱，人可以學學。", "心情不好？看狗的眼睛。",
+            "喝杯熱可可，一切都不那麼糟。", "你今天的笑容，很值錢。", "給世界一個微笑，然後閃人。", "心軟是超能力，不是缺點。",
+            "安靜不是冷淡，是心在休息。", "小確幸也很美，大成功也是。", "你不需要很完美，已經很棒。"
+        ];
+
+        // 步驟 1: 獲取我們需要操作的 HTML 元素
+        const quoteTextEl = document.getElementById('quote-text');
+        const generateBtn = document.getElementById('generate-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const bodyEl = document.body;
+
+        // 函數：產生一個明亮的隨機背景色
+        function getRandomBrightColor() {
+            // 使用 HSL 色彩模型 (色相, 飽和度, 亮度) 可以更容易地控制顏色亮暗
+            const hue = Math.floor(Math.random() * 361);        // 360度的色相環，隨機選一個角度
+            const saturation = Math.floor(Math.random() * 30) + 70; // 飽和度在 70% 到 100% 之間，顏色會很鮮豔
+            const lightness = Math.floor(Math.random() * 10) + 80;  // 亮度在 80% 到 90% 之間，確保顏色是明亮的淺色系
+            return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        }
+
+        // 函數：更新語錄和視覺效果 (背景顏色、文字淡入淡出)
+        function updateQuoteAndVisuals() {
+            // 從語錄陣列中隨機挑選一則
+            // Math.random() 產生 0 到 1 之間的隨機數
+            // 乘以陣列長度，再用 Math.floor() 取整數，就得到一個隨機的索引值
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            const randomColor = getRandomBrightColor();
+
+            // 觸發文字淡出效果 (透過 CSS)
+            quoteTextEl.classList.add('fade');
+
+            // 等待淡出動畫結束 (0.5秒) 後，才更新內容並淡入
+            setTimeout(() => {
+                // 更新語錄文字
+                quoteTextEl.innerText = randomQuote;
+                // 更新背景顏色
+                bodyEl.style.backgroundColor = randomColor;
+
+                // 移除 .fade class，讓文字觸發淡入動畫 (恢復不透明)
+                quoteTextEl.classList.remove('fade');
+            }, 500); // 這裡的 500 毫秒 (0.5秒) 必須和 CSS transition 的時間一致
+        }
+
+        // 函數：處理複製按鈕的點擊事件
+        function handleCopyClick() {
+            const currentQuote = quoteTextEl.innerText;
+
+            // 使用瀏覽器內建的剪貼簿 API (navigator.clipboard)
+            navigator.clipboard.writeText(currentQuote).then(() => {
+                // --- 複製成功後的回饋 ---
+                const originalText = copyBtn.innerText;
+                copyBtn.innerText = '已複製！';
+                copyBtn.classList.add('copied'); // 加上 class 來改變按鈕顏色
+                copyBtn.disabled = true; // 暫時禁用按鈕，防止連續點擊
+
+                // 1.5 秒後，將按鈕文字和樣式恢復原狀
+                setTimeout(() => {
+                    copyBtn.innerText = originalText;
+                    copyBtn.classList.remove('copied');
+                    copyBtn.disabled = false; // 重新啟用按鈕
+                }, 1500);
+
+            }).catch(err => {
+                // 如果複製失敗 (例如在不安全的 http 環境下)，在控制台印出錯誤
+                console.error('複製失敗:', err);
+                alert('抱歉，複製功能出錯了，請您手動複製。');
+            });
+        }
+
+        // --- 步驟 2: 綁定事件監聽器 ---
+
+        // 1. 頁面一載入完成，就先執行一次，顯示初始語錄和背景
+        document.addEventListener('DOMContentLoaded', updateQuoteAndVisuals);
+
+        // 2. 當「換一句！」按鈕被點擊時，執行更新函數
+        generateBtn.addEventListener('click', updateQuoteAndVisuals);
+
+        // 3. 當「複製文字」按鈕被點擊時，執行複製函數
+        copyBtn.addEventListener('click', handleCopyClick);
+    </script>
+    <!-- ========== JavaScript 邏輯結束 ========== -->
+
+</body>
+</html>
